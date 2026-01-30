@@ -109,14 +109,15 @@ func (t *TUI) UpdateLeftView() {
 }
 
 func (t *TUI) showRequestDetail(req *Request) {
-	content := fmt.Sprintf("[yellow]%s %s[-]\n", req.Method, req.URL)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("[yellow]%s %s[-]\n", req.Method, req.URL))
 	for k, v := range req.Headers {
-		content += fmt.Sprintf("[cyan]%s:[-] %s\n", k, v)
+		sb.WriteString(fmt.Sprintf("%s: %s\n", k, v))
 	}
 	if req.Body != "" {
-		content += fmt.Sprintf("\n[white]%s[-]", req.Body)
+		sb.WriteString(fmt.Sprintf("\n[white]%s[-]", req.Body))
 	}
-	t.RightView.SetText(content)
+	t.RightView.SetText(sb.String())
 
 	t.HintView.SetText(
 		fmt.Sprintf("%s %s",

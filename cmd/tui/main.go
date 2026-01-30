@@ -6,7 +6,9 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -17,11 +19,26 @@ type TUI struct {
 	leftView  *tview.List
 	rightView *tview.TextView
 	hintView  *tview.TextView
+	watcher   *fsnotify.Watcher
+	filepath  string
+	requests  []*Request
 }
 
 func main() {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		panic(err)
+	}
+	defer watcher.Close()
+
 	tui := NewTUI()
+	tui.watcher = watcher
+	if err := watcher.Add("test.http"); err != nil {
+		panic(err)
+	}
+
 	tui.readFile("test.http")
+	go tui.watchFile()
 
 	if err := tui.app.Run(); err != nil {
 		panic(err)
@@ -90,6 +107,8 @@ type Request struct {
 }
 
 func (t *TUI) readFile(path string) ([]*Request, error) {
+	t.filepath = path
+
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open file: %w", err)
@@ -214,6 +233,15 @@ func (t *TUI) readFile(path string) ([]*Request, error) {
 	return requests, nil
 }
 
+func (t *TUI) updateLeftView() {
+	t.leftView.Clear()
+	for _, e := range t.requests {
+		t.leftView.AddItem(e.Name, "", 0, func() {
+			t.rightView.SetText("[red]test[-]")
+		})
+	}
+}
+
 func checkHeader(name string) bool {
 	if name == "" {
 		return false
@@ -241,4 +269,77 @@ func checkHeader(name string) bool {
 	}
 
 	return true
+}
+
+func (t *TUI) watchFile() {
+	debounceTimer := time.NewTimer(0)
+	<-debounceTimer.C
+
+	for {
+		select {
+		case event, ok := <-t.watcher.Events:
+			if !ok {
+				return
+			}
+
+			if event.Op&fsnotify.Write == fsnotify.Write ||
+				event.Op&fsnotify.Create == fsnotify.Create {
+
+				debounceTimer.Reset(200 * time.Millisecond)
+				go func() {
+					<-debounceTimer.C
+					t.reloadFile()
+				}()
+			}
+
+		case err, ok := <-t.watcher.Errors:
+			if !ok {
+				return
+			}
+			t.app.QueueUpdateDraw(func() {
+				t.hintView.SetText(fmt.Sprintf("[red]Watch error: %v[-]", err))
+			})
+		}
+	}
+}
+
+func (t *TUI) reloadFile() {
+	t.app.QueueUpdateDraw(func() {
+		t.info("File edited")
+	})
+
+	requests, err := t.readFile(t.filepath)
+	if err != nil {
+		t.app.QueueUpdateDraw(func() {
+			t.error(err)
+		})
+		return
+	}
+
+	t.requests = requests
+
+	t.app.QueueUpdateDraw(func() {
+		index := t.leftView.GetCurrentItem()
+
+		t.updateLeftView()
+
+		if index >= 0 && index < len(t.requests) {
+			t.leftView.SetCurrentItem(index)
+		}
+
+		t.okay("Reloaded")
+	})
+}
+
+func (t *TUI) info(message string) {
+	t.hintView.SetText(fmt.Sprintf("[yellow]✱ %s at %s[-]", fmt.Sprint(message), time.Now().Format("15:04:05")))
+
+}
+
+func (t *TUI) okay(message string) {
+	t.hintView.SetText(fmt.Sprintf("[green]✓ %s at %s[-]", fmt.Sprint(message), time.Now().Format("15:04:05")))
+}
+
+func (t *TUI) error(err error) {
+	t.hintView.SetText(fmt.Sprintf("[red]✕ %v at %s[-]", err, time.Now().Format("15:04:05")))
 }

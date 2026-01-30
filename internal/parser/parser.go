@@ -70,7 +70,7 @@ func ReadFile(t *ui.TUI, path string) ([]*ui.Request, error) {
 				Method:  matches[1],
 				URL:     matches[2],
 				Headers: make(map[string]string),
-				Name:    fmt.Sprintf("%s (%s %s)", name, matches[1], matches[2]),
+				Name:    name,
 			}
 			inBody = false
 			body = nil
@@ -194,13 +194,17 @@ func checkHeader(name string) bool {
 
 func ReloadFile(t *ui.TUI) {
 	t.App.QueueUpdateDraw(func() {
-		t.Info("File edited")
+		t.HintView.SetText(
+			fmt.Sprintf("[yellow]Edited at %s[-]",
+				time.Now().Format("15:04:05")))
 	})
 
 	requests, err := ReadFile(t, t.Filepath)
 	if err != nil {
 		t.App.QueueUpdateDraw(func() {
-			t.Error(err)
+			t.HintView.SetText(
+				fmt.Sprintf("[red]%v at %s[-]", err,
+					time.Now().Format("15:04:05")))
 		})
 		return
 	}
@@ -216,6 +220,8 @@ func ReloadFile(t *ui.TUI) {
 			t.LeftView.SetCurrentItem(index)
 		}
 
-		t.Okay("Reloaded")
+		t.HintView.SetText(
+			fmt.Sprintf("[green]Reloaded at %s[-]",
+				time.Now().Format("15:04:05")))
 	})
 }

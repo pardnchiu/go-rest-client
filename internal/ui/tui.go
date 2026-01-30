@@ -1,7 +1,14 @@
 package ui
 
 import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -38,18 +45,12 @@ func NewTUI() *TUI {
 	}
 
 	tui.LeftView.SetBorder(true).SetBorder(true).
-		SetTitle(" left ").
+		SetTitle(" API ").
 		SetTitleAlign(tview.AlignLeft)
-
-	tui.LeftView.AddItem("test", "", 0, func() {
-		tui.RightView.SetText("[red]test[-]")
-	})
 
 	tui.RightView.SetBorder(true).
-		SetTitle(" right ").
+		SetTitle(" Info ").
 		SetTitleAlign(tview.AlignLeft)
-
-	tui.HintView.SetText(" [green]test[-]")
 
 	flex := tview.NewFlex().
 		AddItem(tui.LeftView, 0, 1, true).
@@ -67,6 +68,12 @@ func NewTUI() *TUI {
 		case tcell.KeyCtrlC, tcell.KeyEsc:
 			tui.App.Stop()
 			return nil
+		case tcell.KeyLeft:
+			tui.App.SetFocus(tui.LeftView)
+			return nil
+		case tcell.KeyRight:
+			tui.App.SetFocus(tui.RightView)
+			return nil
 		case tcell.KeyTab:
 			if tui.App.GetFocus() == tui.LeftView {
 				tui.App.SetFocus(tui.RightView)
@@ -83,21 +90,203 @@ func NewTUI() *TUI {
 
 func (t *TUI) UpdateLeftView() {
 	t.LeftView.Clear()
-	for _, e := range t.Requests {
+	for i, e := range t.Requests {
+		index := i
 		t.LeftView.AddItem(e.Name, "", 0, func() {
-			t.RightView.SetText("[red]test[-]")
+			t.sendRequest(index)
 		})
 	}
+	t.LeftView.SetSelectedBackgroundColor(tcell.ColorDarkCyan)
+	t.LeftView.SetSelectedTextColor(tcell.ColorWhite)
+	t.LeftView.SetHighlightFullLine(true)
+	t.showRequestDetail(t.Requests[0])
+
+	t.LeftView.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
+		if index >= 0 && index < len(t.Requests) {
+			t.showRequestDetail(t.Requests[index])
+		}
+	})
 }
 
-func (t *TUI) Info(message string) {
-	t.HintView.SetText(fmt.Sprintf("[yellow]✱ %s at %s[-]", fmt.Sprint(message), time.Now().Format("15:04:05")))
+func (t *TUI) showRequestDetail(req *Request) {
+	content := fmt.Sprintf("[yellow]%s %s[-]\n", req.Method, req.URL)
+	for k, v := range req.Headers {
+		content += fmt.Sprintf("[cyan]%s:[-] %s\n", k, v)
+	}
+	if req.Body != "" {
+		content += fmt.Sprintf("\n[white]%s[-]", req.Body)
+	}
+	t.RightView.SetText(content)
+
+	t.HintView.SetText(
+		fmt.Sprintf("%s %s",
+			req.Method, req.URL))
 }
 
-func (t *TUI) Okay(message string) {
-	t.HintView.SetText(fmt.Sprintf("[green]✓ %s at %s[-]", fmt.Sprint(message), time.Now().Format("15:04:05")))
+func (t *TUI) sendRequest(index int) {
+	if index < 0 || index >= len(t.Requests) {
+		return
+	}
+
+	req := t.Requests[index]
+	t.App.SetFocus(t.RightView)
+	t.RightView.SetText("[yellow]Sending Resuest[-]")
+	t.HintView.SetText(
+		fmt.Sprintf("[yellow]Sending: %s[-]", req.Name))
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+
+		var bodyReader io.Reader
+		if req.Body != "" {
+			bodyReader = bytes.NewBufferString(req.Body)
+		}
+
+		httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bodyReader)
+		if err != nil {
+			t.App.QueueUpdateDraw(func() {
+				t.RightView.SetText(fmt.Sprintf("[red]Error creating request: %v[-]", err))
+			})
+			return
+		}
+
+		for key, value := range req.Headers {
+			httpReq.Header.Set(key, value)
+		}
+
+		client := &http.Client{
+			Timeout: 120 * time.Second,
+		}
+
+		start := time.Now()
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			t.App.QueueUpdateDraw(func() {
+				t.RightView.SetText(fmt.Sprintf("[red]Error: %v[-]", err))
+				t.HintView.SetText(
+					fmt.Sprintf("[red]%v[-]", err))
+			})
+			return
+		}
+		defer resp.Body.Close()
+
+		contentType := resp.Header.Get("Content-Type")
+		isSSE := strings.Contains(contentType, "text/event-stream")
+
+		if isSSE {
+			t.handleSSEResponse(resp, start, req.Method, req.URL)
+		} else {
+			t.handleResponse(resp, start, req.Method, req.URL)
+		}
+	}()
 }
 
-func (t *TUI) Error(err error) {
-	t.HintView.SetText(fmt.Sprintf("[red]✕ %v at %s[-]", err, time.Now().Format("15:04:05")))
+func responseHeader(resp *http.Response) (string, *strings.Builder) {
+	color := "green"
+	if resp.StatusCode >= 400 {
+		color = "red"
+	} else if resp.StatusCode >= 300 {
+		color = "yellow"
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("[%s]%s[-]\n", color, resp.Status))
+	sb.WriteString("[yellow]Headers:[-]\n")
+	for key, values := range resp.Header {
+		for _, value := range values {
+			sb.WriteString(fmt.Sprintf("  %s: [grey]%s[-]\n", key, value))
+		}
+	}
+	return color, &sb
+}
+
+func (t *TUI) handleResponse(resp *http.Response, start time.Time, method, url string) {
+	bodyBytes, err := io.ReadAll(resp.Body)
+	duration := time.Since(start)
+
+	t.App.QueueUpdateDraw(func() {
+		statusColor, sb := responseHeader(resp)
+		sb.WriteString(fmt.Sprintf("  Duration: [blue]%v[-]\n\n", duration))
+		sb.WriteString("[yellow]Body:[-]\n")
+		if err != nil {
+			sb.WriteString(fmt.Sprintf("  [red]failed read body: %v[-]", err))
+		} else {
+			bodyStr := string(bodyBytes)
+
+			var v any
+			if json.Unmarshal(bodyBytes, &v) == nil {
+				if formatted, err := json.MarshalIndent(v, "  ", "  "); err == nil {
+					bodyStr = string(formatted)
+				}
+			}
+
+			if resp.StatusCode >= 400 {
+				sb.WriteString(fmt.Sprintf("  [red]%s[-]", bodyStr))
+			} else {
+				sb.WriteString(fmt.Sprintf("  %s", bodyStr))
+			}
+		}
+
+		t.RightView.Clear()
+		t.RightView.SetText(sb.String())
+
+		t.HintView.SetText(
+			fmt.Sprintf("[%s](%d)[-] %s %s | %v",
+				statusColor, resp.StatusCode, method, url, duration))
+	})
+}
+
+func (t *TUI) handleSSEResponse(resp *http.Response, start time.Time, method, url string) {
+	statusColor, sb := responseHeader(resp)
+	header := sb.String()
+
+	var newSb strings.Builder
+	t.App.QueueUpdateDraw(func() {
+		newSb.WriteString(header)
+		newSb.WriteString("\n[yellow]Stream Data:[-]\n")
+		t.RightView.SetText(newSb.String())
+	})
+
+	scanner := bufio.NewScanner(resp.Body)
+	var events []string
+	count := 0
+
+	for scanner.Scan() {
+		row := scanner.Text()
+		events = append(events, row)
+		count++
+
+		t.App.QueueUpdateDraw(func() {
+			newSb.Reset()
+			newSb.WriteString(header)
+			newSb.WriteString(fmt.Sprintf("  Duration: [blue]%v[-] | Events: %d\n\n", time.Since(start), count/2))
+			newSb.WriteString("[yellow]Stream Data:[-]\n\n")
+
+			displayEvents := events
+			if len(displayEvents) > 100 {
+				displayEvents = displayEvents[len(displayEvents)-100:]
+			}
+			newSb.WriteString(strings.Join(displayEvents, "\n"))
+
+			t.RightView.Clear()
+			t.RightView.SetText(newSb.String())
+			t.RightView.ScrollToEnd()
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		t.App.QueueUpdateDraw(func() {
+			t.HintView.SetText(
+				fmt.Sprintf("[red]Stream error: %v[-]", err))
+		})
+		return
+	}
+
+	duration := time.Since(start)
+	t.App.QueueUpdateDraw(func() {
+		t.HintView.SetText(
+			fmt.Sprintf("[%s](%d)[-] %s %s | %v",
+				statusColor, resp.StatusCode, method, url, duration))
+	})
 }

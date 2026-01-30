@@ -6,7 +6,7 @@
 [![pkg](https://pkg.go.dev/badge/github.com/pardnchiu/go-rest-client.svg)](https://pkg.go.dev/github.com/pardnchiu/go-rest-client)
 [![license](https://img.shields.io/github/license/pardnchiu/go-rest-client)](LICENSE)
 
-> A terminal-based REST API testing tool compatible with VSCode REST Client extension, executes HTTP requests through an intuitive TUI interface and displays responses in real-time.
+> A terminal-based REST API testing tool compatible with VSCode REST Client extension's `.http` file format. Execute HTTP requests through an intuitive TUI interface and display responses in real-time.
 
 ## Table of Contents
 
@@ -22,14 +22,14 @@
 
 ## Features
 
-- **TUI Interface**: Intuitive terminal user interface built with `tview`
-- **VSCode REST Client Compatible**: Fully compatible with `.http` file format from VSCode REST Client extension
-- **Real-time Response**: Displays status codes, headers, response body, and request duration
-- **SSE Support**: Real-time display of Server-Sent Events streaming data
-- **File Monitoring**: Automatically watches file changes and reloads requests
-- **JSON Formatting**: Auto-formats JSON responses for improved readability
-- **Multiple Methods**: Supports GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
-- **Keyboard Navigation**: Quickly switch between views using keyboard shortcuts (Tab / Arrow Keys)
+- **TUI Interface**: Split-panel interface built with `tview` (API list / response display)
+- **VSCode REST Client Compatible**: Full support for `.http` file format
+- **Real-time Response**: Display status codes, headers, response body, and request duration
+- **SSE Support**: Real-time streaming display of Server-Sent Events data
+- **File Monitoring**: Automatically detect file changes and reload requests
+- **JSON Formatting**: Auto-format JSON responses for improved readability
+- **Multiple Methods**: Support GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+- **Keyboard Navigation**: Tab and arrow keys for quick view switching
 
 ## Architecture
 
@@ -41,7 +41,7 @@ graph TB
     B --> D[TUI Components]
     D --> E[LeftView - API List]
     D --> F[RightView - Response Display]
-    D --> G[HintView - Status Indicator]
+    D --> G[HintView - Status Hint]
 
     C --> H[ReadFile]
     C --> I[WatchFile]
@@ -58,23 +58,6 @@ graph TB
 
 ## Installation
 
-### Quick Install (Recommended)
-
-Use the installation script to automatically download the latest version:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/pardnchiu/go-rest-client/main/install.sh | bash
-```
-
-Or download and run manually:
-
-```bash
-wget https://raw.githubusercontent.com/pardnchiu/go-rest-client/main/install.sh
-bash install.sh
-```
-
-The script will automatically detect your operating system and architecture, and download the appropriate binary.
-
 ### Build from Source
 
 ```bash
@@ -86,109 +69,110 @@ go build -o gorc ./cmd/tui
 ### Install to System Path
 
 ```bash
-sudo cp gorc /usr/sbin/gorc
+sudo cp gorc /usr/local/bin/gorc
 ```
 
 ### Install via Go
 
 ```bash
 go install github.com/pardnchiu/go-rest-client/cmd/tui@latest
-# Copy to system path after compilation
-sudo cp $(go env GOPATH)/bin/tui /usr/sbin/gorc
+sudo cp $(go env GOPATH)/bin/tui /usr/local/bin/gorc
 ```
 
 ## Usage
 
 ### 1. Create Request File
 
-Create a `test.http` file and define your requests:
+Create an `api.http` file and define your requests:
 
 ```http
-### Example GET Request
+### Get User Info
 GET https://api.github.com/users/pardnchiu
 Accept: application/json
 
-### Example POST Request
+###
+
+### Send POST Request
 POST https://httpbin.org/post
 Content-Type: application/json
 
 {
-  "key": "value"
+  "name": "test",
+  "value": 123
 }
 
-### SSE Example
-GET https://httpbin.org/stream/10
+###
+
+### SSE Stream
+GET https://httpbin.org/stream/5
 Accept: text/event-stream
 ```
 
-### 2. Launch the Application
+### 2. Launch Application
 
 ```bash
-gorc
+gorc api.http
 ```
 
-### 3. Navigation
+### 3. Keyboard Controls
 
 | Key | Function |
 |-----|----------|
 | `Tab` | Switch between API list and response view |
-| `←` / `→` | Arrow keys to quickly switch views |
-| `Ctrl+C` / `Esc` | Exit the application |
-| `Enter` | Select and send the request |
+| `←` / `→` | Arrow keys for quick view switching |
+| `↑` / `↓` | Navigate API list |
+| `Enter` | Execute selected request |
+| `Ctrl+C` / `Esc` | Exit application |
 
 ## CLI Reference
 
-### TUI Methods
+### Syntax
+
+```bash
+gorc <file.http>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `file.http` | Path to `.http` request file (required) |
+
+### Supported HTTP Methods
 
 | Method | Description |
 |--------|-------------|
-| `NewTUI()` | Initialize TUI application and configure components |
-| `UpdateLeftView()` | Update the API list view content |
-| `sendRequest(index)` | Send HTTP request and display response |
-| `showRequestDetail(req)` | Display request details |
+| `GET` | Retrieve resource |
+| `POST` | Create resource |
+| `PUT` | Update resource (full) |
+| `PATCH` | Update resource (partial) |
+| `DELETE` | Delete resource |
+| `HEAD` | Get headers only |
+| `OPTIONS` | Get supported methods |
 
-### Parser Methods
+### .http File Format
 
-| Method | Description |
-|--------|-------------|
-| `ReadFile(tui, path)` | Parse .http file and load requests |
-| `WatchFile(tui)` | Monitor file changes and auto-reload |
-| `ReloadFile(tui)` | Reload file and update UI |
+```http
+### Request Name
+METHOD URL
+Header-Name: Header-Value
 
-### Data Structures
+{request body}
 
-#### Request
-
-```go
-type Request struct {
-    Name    string            // Request name
-    Method  string            // HTTP method (GET, POST, PUT...)
-    URL     string            // Request URL
-    Headers map[string]string // HTTP headers
-    Body    string            // Request body
-}
+###
 ```
 
-#### TUI
-
-```go
-type TUI struct {
-    App       *tview.Application      // TUI application
-    Pages     *tview.Pages            // Page container
-    LeftView  *tview.List             // Left API list
-    RightView *tview.TextView         // Right response display
-    HintView  *tview.TextView         // Bottom status indicator
-    Watcher   *fsnotify.Watcher       // File watcher
-    Filepath  string                  // Monitored file path
-    Requests  []*Request              // Loaded request list
-}
-```
+- `###` serves as request separator
+- `### Name` defines request name
+- Headers follow immediately after METHOD URL
+- Empty line precedes request body
+- Supports `//` and `#` comments
 
 ## Use Cases
 
-### API Testing
+### API Development Testing
 
-Quickly test Restful APIs during development without switching browsers or using command-line tools.
+Quickly test RESTful APIs during development without switching to browser or using curl.
 
 ```http
 ### Create User
@@ -196,34 +180,29 @@ POST https://api.example.com/users
 Content-Type: application/json
 
 {
-  "name": "John Doe",
+  "name": "John",
   "email": "john@example.com"
 }
 ```
 
 ### SSE Real-time Monitoring
 
-Monitor Server-Sent Events streaming data in real-time, suitable for real-time notifications or event monitoring.
+Monitor Server-Sent Events streaming data for real-time notifications or event listening.
 
 ```http
-### Monitor Events
+### Listen Events
 GET https://api.example.com/events
 Accept: text/event-stream
 ```
 
-### Multi-Environment Switching
+### Multi-environment Switching
 
-Quickly switch between `dev.http`, `staging.http`, `prod.http` files to use different environment configurations.
+Create separate `.http` files for different environments:
 
 ```bash
-# Test development environment
-gorc dev.http
-
-# Test staging environment
-gorc staging.http
-
-# Test production environment
-gorc prod.http
+gorc dev.http      # Development
+gorc staging.http  # Staging
+gorc prod.http     # Production
 ```
 
 ## License
@@ -248,4 +227,4 @@ MIT License
 
 ***
 
-©️ 2026 [Pardn Chiu](https://linkedin.com/in/pardnchiu)
+©️ 2026 [邱敬幃 Pardn Chiu](https://linkedin.com/in/pardnchiu)

@@ -126,7 +126,10 @@ func ReadFile(t *ui.TUI, path string) ([]*ui.Request, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
+	t.Mu.Lock()
 	t.Requests = requests
+	t.Mu.Unlock()
+
 	t.UpdateLeftView()
 
 	return requests, nil

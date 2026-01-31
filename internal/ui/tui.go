@@ -176,6 +176,9 @@ func (t *TUI) sendRequest(index int) {
 
 		start := time.Now()
 		resp, err := client.Do(httpReq)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 		if err != nil {
 			t.App.QueueUpdateDraw(func() {
 				t.RightView.SetText(fmt.Sprintf("[red]Error: %v[-]", err))

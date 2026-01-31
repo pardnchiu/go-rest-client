@@ -1,6 +1,8 @@
 > [!NOTE]
 > 此 README 由 [Claude Code](https://github.com/pardnchiu/skill-readme-generate) 生成，英文版請參閱 [這裡](./README.md)。
 
+![cover](./cover.png)
+
 # go-rest-client
 
 [![pkg](https://pkg.go.dev/badge/github.com/pardnchiu/go-rest-client.svg)](https://pkg.go.dev/github.com/pardnchiu/go-rest-client)
@@ -8,53 +10,64 @@
 
 > 基於終端的 REST API 測試工具，相容 VSCode REST Client 擴充功能的 `.http` 檔案格式，透過直觀的 TUI 介面執行 HTTP 請求並即時顯示回應。
 
+## 預覽
+
+```
+┌─ API ─────────────────────┐┌─ Info ─────────────────────────────────────────┐
+│ Get User Info             ││ GET https://api.github.com/users/pardnchiu     │
+│ Send POST Request         ││ Accept: application/json                       │
+│ SSE Stream                ││                                                │
+│                           ││                                                │
+│                           ││                                                │
+│                           ││                                                │
+│                           ││                                                │
+│                           ││                                                │
+│                           ││                                                │
+│                           ││                                                │
+└───────────────────────────┘└────────────────────────────────────────────────┘
+ GET https://api.github.com/users/pardnchiu
+```
+
+```
+┌─ API ─────────────────────┐┌─ Info ─────────────────────────────────────────┐
+│ Get User Info             ││ 200 OK                                         │
+│ Send POST Request         ││ Headers:                                       │
+│ SSE Stream                ││   Content-Type: application/json; charset=utf-8│
+│                           ││   X-RateLimit-Limit: 60                        │
+│                           ││   Duration: 245.123ms                          │
+│                           ││                                                │
+│                           ││ Body:                                          │
+│                           ││   {                                            │
+│                           ││     "login": "pardnchiu",                      │
+│                           ││     "id": 25631760,                            │
+│                           ││     "type": "User"                             │
+│                           ││   }                                            │
+└───────────────────────────┘└────────────────────────────────────────────────┘
+ (200) GET https://api.github.com/users/pardnchiu | 245.123ms
+```
+
 ## 目錄
 
 - [功能特點](#功能特點)
-- [架構](#架構)
 - [安裝](#安裝)
 - [使用方法](#使用方法)
 - [命令列參考](#命令列參考)
-- [使用場景](#使用場景)
 - [授權](#授權)
 - [Author](#author)
 - [Stars](#stars)
 
 ## 功能特點
 
-- **TUI 介面**：使用 `tview` 建構的分割面板介面（API 清單 / 回應顯示）
-- **VSCode REST Client 相容**：完整支援 `.http` 檔案格式
-- **即時回應**：顯示狀態碼、標頭、回應主體與請求耗時
-- **SSE 支援**：即時串流顯示 Server-Sent Events 資料
-- **檔案監控**：自動偵測檔案變更並重新載入請求
-- **JSON 格式化**：自動格式化 JSON 回應以提升可讀性
-- **多重方法**：支援 GET、POST、PUT、DELETE、PATCH、HEAD、OPTIONS
-- **鍵盤導航**：Tab 與方向鍵快速切換視圖
-
-## 架構
-
-```mermaid
-graph TB
-    A[main.go] --> B[ui.TUI]
-    A --> C[parser]
-
-    B --> D[TUI Components]
-    D --> E[LeftView - API 清單]
-    D --> F[RightView - 回應顯示]
-    D --> G[HintView - 狀態提示]
-
-    C --> H[ReadFile]
-    C --> I[WatchFile]
-    C --> J[ReloadFile]
-
-    B --> K[sendRequest]
-    K --> L[HTTP Client]
-    L --> M{Content-Type}
-    M -->|text/event-stream| N[handleSSEResponse]
-    M -->|其他| O[handleResponse]
-
-    I -->|檔案變更| J
-```
+| 功能 | 說明 |
+|------|------|
+| TUI 介面 | 使用 `tview` 建構的分割面板（API 清單 / 回應顯示） |
+| VSCode 相容 | 完整支援 `.http` 檔案格式 |
+| 即時回應 | 顯示狀態碼、標頭、回應主體與請求耗時 |
+| SSE 支援 | 即時串流顯示 Server-Sent Events 資料 |
+| 檔案監控 | 自動偵測檔案變更並重新載入請求 |
+| JSON 格式化 | 自動格式化 JSON 回應以提升可讀性 |
+| 多重方法 | GET、POST、PUT、DELETE、PATCH、HEAD、OPTIONS |
+| 鍵盤導航 | Tab 與方向鍵快速切換視圖 |
 
 ## 安裝
 
@@ -83,8 +96,6 @@ sudo cp $(go env GOPATH)/bin/tui /usr/local/bin/gorc
 
 ### 1. 建立請求檔案
 
-建立 `api.http` 檔案並定義請求：
-
 ```http
 ### 取得使用者資訊
 GET https://api.github.com/users/pardnchiu
@@ -102,10 +113,6 @@ Content-Type: application/json
 }
 
 ###
-
-### SSE 串流
-GET https://httpbin.org/stream/5
-Accept: text/event-stream
 ```
 
 ### 2. 啟動程式
@@ -118,25 +125,17 @@ gorc api.http
 
 | 按鍵 | 功能 |
 |------|------|
-| `Tab` | 在 API 清單與回應視圖間切換 |
-| `←` / `→` | 方向鍵快速切換視圖 |
-| `↑` / `↓` | 上下選擇 API |
+| `↑` `↓` | 上下選擇 API |
 | `Enter` | 執行選取的請求 |
-| `Ctrl+C` / `Esc` | 退出程式 |
+| `Tab` | 在 API 清單與回應視圖間切換 |
+| `←` `→` | 方向鍵快速切換視圖 |
+| `Ctrl+C` `Esc` | 退出程式 |
 
 ## 命令列參考
-
-### 語法
 
 ```bash
 gorc <file.http>
 ```
-
-### 參數
-
-| 參數 | 說明 |
-|------|------|
-| `file.http` | `.http` 請求檔案路徑（必要） |
 
 ### 支援的 HTTP 方法
 
@@ -162,48 +161,11 @@ Header-Name: Header-Value
 ###
 ```
 
-- `###` 作為請求分隔符號
-- `### 名稱` 定義請求名稱
-- 標頭緊接在 METHOD URL 之後
-- 空行後為請求主體
-- 支援 `//` 與 `#` 註解
-
-## 使用場景
-
-### API 開發測試
-
-在開發階段快速測試 RESTful API，無需切換至瀏覽器或使用 curl。
-
-```http
-### 建立使用者
-POST https://api.example.com/users
-Content-Type: application/json
-
-{
-  "name": "John",
-  "email": "john@example.com"
-}
-```
-
-### SSE 即時監控
-
-監控 Server-Sent Events 串流資料，適用於即時通知或事件監聽。
-
-```http
-### 監聽事件
-GET https://api.example.com/events
-Accept: text/event-stream
-```
-
-### 多環境切換
-
-為不同環境建立獨立的 `.http` 檔案：
-
-```bash
-gorc dev.http      # 開發環境
-gorc staging.http  # 測試環境
-gorc prod.http     # 正式環境
-```
+| 語法 | 說明 |
+|------|------|
+| `###` | 請求分隔符號 |
+| `### 名稱` | 定義請求名稱 |
+| `//` `#` | 註解 |
 
 ## 授權
 

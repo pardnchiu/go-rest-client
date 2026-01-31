@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -25,6 +26,7 @@ type TUI struct {
 	Watcher   *fsnotify.Watcher
 	Filepath  string
 	Requests  []*Request
+	Mu        sync.RWMutex
 }
 
 type Request struct {
@@ -89,8 +91,12 @@ func NewTUI() *TUI {
 }
 
 func (t *TUI) UpdateLeftView() {
+	t.Mu.RLock()
+	requests := t.Requests
+	t.Mu.RUnlock()
+
 	t.LeftView.Clear()
-	for i, e := range t.Requests {
+	for i, e := range requests {
 		index := i
 		t.LeftView.AddItem(e.Name, "", 0, func() {
 			t.sendRequest(index)
@@ -99,9 +105,14 @@ func (t *TUI) UpdateLeftView() {
 	t.LeftView.SetSelectedBackgroundColor(tcell.ColorDarkCyan)
 	t.LeftView.SetSelectedTextColor(tcell.ColorWhite)
 	t.LeftView.SetHighlightFullLine(true)
-	t.showRequestDetail(t.Requests[0])
+	if len(requests) > 0 {
+		t.showRequestDetail(requests[0])
+	}
 
 	t.LeftView.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
+		t.Mu.RLock()
+		defer t.Mu.RUnlock()
+
 		if index >= 0 && index < len(t.Requests) {
 			t.showRequestDetail(t.Requests[index])
 		}
@@ -125,11 +136,14 @@ func (t *TUI) showRequestDetail(req *Request) {
 }
 
 func (t *TUI) sendRequest(index int) {
+	t.Mu.RLock()
 	if index < 0 || index >= len(t.Requests) {
+		t.Mu.RUnlock()
 		return
 	}
-
 	req := t.Requests[index]
+	t.Mu.RUnlock()
+
 	t.App.SetFocus(t.RightView)
 	t.RightView.SetText("[yellow]Sending Resuest[-]")
 	t.HintView.SetText(

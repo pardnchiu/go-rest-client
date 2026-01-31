@@ -27,23 +27,25 @@ func main() {
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "failed to create file watcher: %v\n", err)
 	}
 	defer watcher.Close()
 
 	tui := ui.NewTUI()
 	tui.Watcher = watcher
 	if err := watcher.Add(filePath); err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "failed to watch file '%s': %v\n", filePath, err)
+		os.Exit(1)
 	}
 
 	if _, err := parser.ReadFile(tui, filePath); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: failed to parse file '%s': %v\n", filePath, err)
+		fmt.Fprintf(os.Stderr, "failed to parse file '%s': %v\n", filePath, err)
 		os.Exit(1)
 	}
 	go parser.WatchFile(tui)
 
 	if err := tui.App.Run(); err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "failed to run TUI: %v\n", err)
+		os.Exit(1)
 	}
 }

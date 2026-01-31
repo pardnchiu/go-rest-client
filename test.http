@@ -1,0 +1,362 @@
+### JSONPlaceholder - Get All Posts
+GET https://jsonplaceholder.typicode.com/posts
+
+###
+
+### JSONPlaceholder - Get Single Post
+GET https://jsonplaceholder.typicode.com/posts/1
+
+###
+
+### JSONPlaceholder - Create Post
+POST https://jsonplaceholder.typicode.com/posts
+Content-Type: application/json
+
+{
+  "title": "Test Post",
+  "body": "This is a test post content",
+  "userId": 1
+}
+
+###
+
+### JSONPlaceholder - Update Post
+PUT https://jsonplaceholder.typicode.com/posts/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "title": "Updated Title",
+  "body": "Updated content",
+  "userId": 1
+}
+
+###
+
+### JSONPlaceholder - Patch Post
+PATCH https://jsonplaceholder.typicode.com/posts/1
+Content-Type: application/json
+
+{
+  "title": "Patched Title"
+}
+
+###
+
+### JSONPlaceholder - Delete Post
+DELETE https://jsonplaceholder.typicode.com/posts/1
+
+###
+
+### JSONPlaceholder - Get Comments by Post
+GET https://jsonplaceholder.typicode.com/posts/1/comments
+
+###
+
+### JSONPlaceholder - Get Users
+GET https://jsonplaceholder.typicode.com/users
+
+###
+
+### HTTPBin - GET Request
+GET https://httpbin.org/get
+
+###
+
+### HTTPBin - POST with JSON
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{
+  "name": "Test User",
+  "email": "test@example.com"
+}
+
+###
+
+### HTTPBin - Custom Headers
+GET https://httpbin.org/headers
+X-Custom-Header: CustomValue
+Authorization: Bearer test-token-12345
+
+###
+
+### HTTPBin - Query Parameters
+GET https://httpbin.org/get?foo=bar&baz=qux
+
+###
+
+### HTTPBin - Response Headers
+GET https://httpbin.org/response-headers?X-Test=Hello
+
+###
+
+### HTTPBin - IP Address
+GET https://httpbin.org/ip
+
+###
+
+### HTTPBin - User Agent
+GET https://httpbin.org/user-agent
+
+###
+
+### HTTPBin - UUID Generator
+GET https://httpbin.org/uuid
+
+###
+
+### HTTPBin - Delayed Response (2 seconds)
+GET https://httpbin.org/delay/2
+
+###
+
+### DummyJSON - Get Products
+GET https://dummyjson.com/products
+
+###
+
+### DummyJSON - Search Products
+GET https://dummyjson.com/products/search?q=phone
+
+###
+
+### DummyJSON - Get Single Product
+GET https://dummyjson.com/products/1
+
+###
+
+### DummyJSON - Add Product
+POST https://dummyjson.com/products/add
+Content-Type: application/json
+
+{
+  "title": "New Product",
+  "price": 99.99,
+  "description": "A test product"
+}
+
+###
+
+### DummyJSON - User Login
+POST https://dummyjson.com/auth/login
+Content-Type: application/json
+
+{
+  "username": "emilys",
+  "password": "emilyspass"
+}
+
+###
+
+### Cat Facts - Random Fact
+GET https://catfact.ninja/fact
+
+###
+
+### Cat Facts - Multiple Facts
+GET https://catfact.ninja/facts?limit=5
+
+###
+
+### Dog API - Random Dog Image
+GET https://dog.ceo/api/breeds/image/random
+
+###
+
+### Dog API - List All Breeds
+GET https://dog.ceo/api/breeds/list/all
+
+###
+
+### Dog API - Breed Images
+GET https://dog.ceo/api/breed/hound/images/random/3
+
+###
+
+### Public APIs - Random Entry
+GET https://api.publicapis.org/random
+
+###
+
+### Bored API - Get Activity
+GET https://www.boredapi.com/api/activity
+
+###
+
+### Bored API - Get Activity by Type
+GET https://www.boredapi.com/api/activity?type=recreational
+
+###
+
+// ============================================
+// ERROR TESTING SECTION
+// ============================================
+
+### ERROR - 404 Not Found
+GET https://jsonplaceholder.typicode.com/posts/99999
+
+###
+
+### ERROR - 404 Invalid Endpoint
+GET https://jsonplaceholder.typicode.com/invalid-endpoint
+
+###
+
+### ERROR - HTTPBin 400 Bad Request
+GET https://httpbin.org/status/400
+
+###
+
+### ERROR - HTTPBin 401 Unauthorized
+GET https://httpbin.org/status/401
+
+###
+
+### ERROR - HTTPBin 403 Forbidden
+GET https://httpbin.org/status/403
+
+###
+
+### ERROR - HTTPBin 404 Not Found
+GET https://httpbin.org/status/404
+
+###
+
+### ERROR - HTTPBin 405 Method Not Allowed
+GET https://httpbin.org/status/405
+
+###
+
+### ERROR - HTTPBin 408 Request Timeout
+GET https://httpbin.org/status/408
+
+###
+
+### ERROR - HTTPBin 429 Too Many Requests
+GET https://httpbin.org/status/429
+
+###
+
+### ERROR - HTTPBin 500 Internal Server Error
+GET https://httpbin.org/status/500
+
+###
+
+### ERROR - HTTPBin 502 Bad Gateway
+GET https://httpbin.org/status/502
+
+###
+
+### ERROR - HTTPBin 503 Service Unavailable
+GET https://httpbin.org/status/503
+
+###
+
+### ERROR - HTTPBin 504 Gateway Timeout
+GET https://httpbin.org/status/504
+
+###
+
+### ERROR - Invalid JSON Body
+POST https://httpbin.org/post
+Content-Type: application/json
+
+{invalid json here}
+
+###
+
+### ERROR - Missing Required Field (DummyJSON)
+POST https://dummyjson.com/products/add
+Content-Type: application/json
+
+{
+  "description": "Product without title or price"
+}
+
+###
+
+### ERROR - Invalid Auth Credentials
+POST https://dummyjson.com/auth/login
+Content-Type: application/json
+
+{
+  "username": "wronguser",
+  "password": "wrongpassword"
+}
+
+###
+
+### ERROR - Invalid Domain (DNS Failure)
+GET https://this-domain-does-not-exist-12345.com/api
+
+###
+
+### ERROR - Connection Refused (localhost)
+GET http://localhost:99999/api
+
+###
+
+### ERROR - Empty Body POST
+POST https://httpbin.org/post
+Content-Type: application/json
+
+###
+
+### EDGE - Large Response
+GET https://jsonplaceholder.typicode.com/photos
+
+###
+
+### EDGE - HEAD Request
+HEAD https://jsonplaceholder.typicode.com/posts/1
+
+###
+
+### EDGE - OPTIONS Request
+OPTIONS https://httpbin.org/get
+
+###
+
+### EDGE - Redirect (302)
+GET https://httpbin.org/redirect/1
+
+###
+
+### EDGE - Multiple Redirects
+GET https://httpbin.org/redirect/3
+
+###
+
+### EDGE - Absolute Redirect
+GET https://httpbin.org/absolute-redirect/2
+
+###
+
+### EDGE - Gzip Response
+GET https://httpbin.org/gzip
+
+###
+
+### EDGE - Deflate Response
+GET https://httpbin.org/deflate
+
+###
+
+### EDGE - UTF-8 Encoding
+GET https://httpbin.org/encoding/utf8
+
+###
+
+### EDGE - HTML Response
+GET https://httpbin.org/html
+
+###
+
+### EDGE - XML Response
+GET https://httpbin.org/xml
+
+###
+
+### EDGE - Robots.txt
+GET https://httpbin.org/robots.txt

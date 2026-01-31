@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -132,8 +133,10 @@ func ReadFile(t *ui.TUI, path string) ([]*ui.Request, error) {
 }
 
 func WatchFile(t *ui.TUI) {
-	debounceTimer := time.NewTimer(0)
-	<-debounceTimer.C
+	var (
+		mu    sync.Mutex
+		timer *time.Timer
+	)
 
 	for {
 		select {
@@ -142,14 +145,15 @@ func WatchFile(t *ui.TUI) {
 				return
 			}
 
-			if event.Op&fsnotify.Write == fsnotify.Write ||
-				event.Op&fsnotify.Create == fsnotify.Create {
-
-				debounceTimer.Reset(200 * time.Millisecond)
-				go func() {
-					<-debounceTimer.C
+			if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
+				mu.Lock()
+				if timer != nil {
+					timer.Stop()
+				}
+				timer = time.AfterFunc(200*time.Millisecond, func() {
 					ReloadFile(t)
-				}()
+				})
+				mu.Unlock()
 			}
 
 		case err, ok := <-t.Watcher.Errors:
@@ -209,16 +213,20 @@ func ReloadFile(t *ui.TUI) {
 		return
 	}
 
+	t.Mu.Lock()
 	t.Requests = requests
+	t.Mu.Unlock()
 
 	t.App.QueueUpdateDraw(func() {
 		index := t.LeftView.GetCurrentItem()
 
 		t.UpdateLeftView()
 
+		t.Mu.RLock()
 		if index >= 0 && index < len(t.Requests) {
 			t.LeftView.SetCurrentItem(index)
 		}
+		t.Mu.RUnlock()
 
 		t.HintView.SetText(
 			fmt.Sprintf("[green]Reloaded at %s[-]",

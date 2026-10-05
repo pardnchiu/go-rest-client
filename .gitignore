@@ -1,2 +1,4 @@
 .DS_Store
 v*.md
+.doc/
+wiki-worker/

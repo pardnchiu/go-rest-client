@@ -1,7 +1,7 @@
 > [!NOTE]
 > 此 README 由 [SKILL](https://github.com/agenvoy/skill-readme-generate) 生成，英文版請參閱 [這裡](../README.md)。
 
----
+***
 
 <p align="center">
 <strong>RUN YOUR .HTTP FILES RIGHT IN THE TERMINAL!</strong>
@@ -12,9 +12,9 @@
 <a href="../LICENSE"><img src="https://img.shields.io/github/license/pardnchiu/go-rest-client?include_prereleases&style=for-the-badge" alt="License"></a>
 </p>
 
----
+***
 
-> Go 終端機 REST 客戶端，具備 `.http` 檔案相容、存檔即時重載與 SSE 串流顯示
+> Go 終端機 REST API 測試工具，具備 .http 檔案相容、存檔即時重載與 SSE 串流顯示
 
 ## 目錄
 
@@ -58,9 +58,9 @@ graph LR
 Just [open an issue](https://github.com/pardnchiu/go-rest-client/issues/new) to share an idea.
 
 <a href="https://github.com/pardnchiu/go-rest-client/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=pardnchiu/go-rest-client&cache_bust=2026-10-05" alt="go-rest-client contributors" />
+  <img src="https://contrib.rocks/image?repo=pardnchiu/go-rest-client&cache_bust=2026-10-06" alt="go-rest-client contributors" />
 </a>
 
----
+***
 
 ©️ 2026 [邱敬幃 Pardn Chiu](https://www.linkedin.com/in/pardnchiu)

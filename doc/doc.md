@@ -140,7 +140,8 @@ When the response `Content-Type` contains `text/event-stream`, the client switch
 | `METHOD URL` | Request line; method must be uppercase |
 | `Key: Value` | Header; key must start with a letter and contain only letters, digits, `-`, `_` |
 | Blank line, `{`, `[` | Everything after is treated as body |
-| `#`, `//`, `--` | Comments (outside body) |
+| `#` (not `###`) | Comment; also skipped inside body |
+| `//`, `--` | Comments (outside body only) |
 
 ### Request Behavior
 
